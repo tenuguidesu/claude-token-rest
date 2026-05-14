@@ -145,23 +145,27 @@ class App(rumps.App):
     def _apply(self, snap, lim_5h, lim_7d, warn, danger, now) -> None:
         # 5時間ウィンドウ
         used_5h = snap.five_hour.total
-        pct_5h  = _pct(used_5h, lim_5h)
-        # リセット = 現在時刻 + (5h - 経過時間の残り) ≈ 最古エントリ + 5h
-        reset_5h_in = (now + timedelta(hours=5)) - now  # 最大5h後
-        reset_secs  = 5 * 3600  # 簡易: ウィンドウ先頭が不明なので最大値表示
-
-        self._5h_used.title   = f"　 使用: {used_5h:>10,} / {lim_5h:,} tokens"
-        self._5h_remain.title = f"　 残量: {max(0, lim_5h - used_5h):>10,} tokens ({pct_5h:.0f}%)"
-        self._5h_reset.title  = f"　 リセット: 最大 {_delta_str(reset_secs)}"
+        if lim_5h > 0:
+            pct_5h = _pct(used_5h, lim_5h)
+            self._5h_used.title   = f"　 使用: {used_5h:>12,} / {lim_5h:,} tokens"
+            self._5h_remain.title = f"　 残量: {max(0, lim_5h - used_5h):>12,} tokens ({pct_5h:.0f}%)"
+        else:
+            pct_5h = -1  # 上限未設定
+            self._5h_used.title   = f"　 使用: {used_5h:>12,} tokens"
+            self._5h_remain.title = f"　 残量: 上限未設定 (⚙ 設定から入力)"
+        self._5h_reset.title = f"　 リセット: 最大 {_delta_str(5 * 3600)}"
 
         # 7日間ウィンドウ
         used_7d = snap.seven_day.total
-        pct_7d  = _pct(used_7d, lim_7d)
-        reset_7d_secs = 7 * 86400
-
-        self._7d_used.title   = f"　 使用: {used_7d:>10,} / {lim_7d:,} tokens"
-        self._7d_remain.title = f"　 残量: {max(0, lim_7d - used_7d):>10,} tokens ({pct_7d:.0f}%)"
-        self._7d_reset.title  = f"　 リセット: 最大 {_delta_str(reset_7d_secs)}"
+        if lim_7d > 0:
+            pct_7d = _pct(used_7d, lim_7d)
+            self._7d_used.title   = f"　 使用: {used_7d:>12,} / {lim_7d:,} tokens"
+            self._7d_remain.title = f"　 残量: {max(0, lim_7d - used_7d):>12,} tokens ({pct_7d:.0f}%)"
+        else:
+            pct_7d = -1  # 上限未設定
+            self._7d_used.title   = f"　 使用: {used_7d:>12,} tokens"
+            self._7d_remain.title = f"　 残量: 上限未設定 (⚙ 設定から入力)"
+        self._7d_reset.title = f"　 リセット: 最大 {_delta_str(7 * 86400)}"
 
         # セッション
         s = snap.session
@@ -176,9 +180,17 @@ class App(rumps.App):
         self._last_updated.title = f"　 最終更新: {jst.strftime('%H:%M:%S')}"
 
         # メニューバータイトル
-        min_pct = min(pct_5h, pct_7d)
-        ind = _indicator(min_pct, warn, danger)
-        self.title = f"{ind} 5h:{pct_5h:.0f}%  7d:{pct_7d:.0f}%"
+        def _fmt_pct(pct: float) -> str:
+            return f"{pct:.0f}%" if pct >= 0 else "--"
+
+        if pct_5h >= 0 or pct_7d >= 0:
+            known_pcts = [p for p in (pct_5h, pct_7d) if p >= 0]
+            min_pct = min(known_pcts)
+            ind = _indicator(min_pct, warn, danger)
+        else:
+            ind = "⏱"
+
+        self.title = f"{ind} 5h:{_fmt_pct(pct_5h)}  7d:{_fmt_pct(pct_7d)}"
 
     # ── プラン選択 ──
     def _on_plan(self, sender) -> None:

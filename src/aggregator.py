@@ -68,12 +68,17 @@ def _latest_session_id() -> tuple[str, datetime | None]:
             try:
                 with open(p) as f:
                     d = json.load(f)
-                updated = d.get("updatedAt") or d.get("startedAt")
-                if updated:
-                    ts = datetime.fromisoformat(updated.replace("Z", "+00:00"))
-                    if best_ts is None or ts > best_ts:
-                        best_ts = ts
-                        best_sid = d.get("sessionId", "")
+                raw = d.get("updatedAt") or d.get("startedAt")
+                if raw is None:
+                    continue
+                # updatedAt は Unix ミリ秒（int）または ISO 文字列のどちらかが返る
+                if isinstance(raw, (int, float)):
+                    ts = datetime.fromtimestamp(raw / 1000, tz=timezone.utc)
+                else:
+                    ts = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                if best_ts is None or ts > best_ts:
+                    best_ts = ts
+                    best_sid = d.get("sessionId", "")
             except Exception:
                 pass
     except OSError:
