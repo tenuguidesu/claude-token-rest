@@ -25,4 +25,4 @@ hdiutil create \
   "$DMG"
 
 echo "==> 完了: $DMG"
-open dist/
+[[ -z "${CI:-}" ]] && open dist/

@@ -48,10 +48,14 @@ def main() -> None:
 
     for s in SIZES:
         img = _draw(s)
-        img.save(ICONSET / f"icon_{s}x{s}.png")
-        if s <= 512:
-            img2 = img.resize((s * 2, s * 2), Image.LANCZOS)
-            img2.save(ICONSET / f"icon_{s}x{s}@2x.png")
+        # iconutil の命名規則: 1024px は icon_512x512@2x.png として保存する
+        if s == 1024:
+            img.save(ICONSET / "icon_512x512@2x.png")
+        else:
+            img.save(ICONSET / f"icon_{s}x{s}.png")
+            if s <= 512:
+                img2 = img.resize((s * 2, s * 2), Image.LANCZOS)
+                img2.save(ICONSET / f"icon_{s}x{s}@2x.png")
 
     result = subprocess.run(
         ["iconutil", "-c", "icns", str(ICONSET), "-o", str(ICNS)],

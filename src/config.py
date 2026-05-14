@@ -10,15 +10,14 @@ PLANS = {
     "custom": {"label": "カスタム",    "mul": None},
 }
 
-# 上限は Anthropic 非公開のため 0 = 未設定（使用量のみ表示）
-# カスタムで実測値を設定するよう促す
-BASE_5H = 0
-BASE_7D = 0
+# Anthropic 非公開のため推定値。UI 上で「推定」と明示して使用する
+BASE_5H = 50_000
+BASE_7D = 500_000
 
 DEFAULTS = {
-    "plan":       "custom",
-    "custom_5h":  0,
-    "custom_7d":  0,
+    "plan":       "pro",
+    "custom_5h":  50_000,
+    "custom_7d":  500_000,
     "warn_pct":   30,
     "danger_pct": 10,
 }

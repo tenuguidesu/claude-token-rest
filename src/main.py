@@ -34,6 +34,10 @@ def _indicator(pct: float, warn: int, danger: int) -> str:
     return "🔴"
 
 
+def _fmt_pct(pct: float) -> str:
+    return f"{pct:.0f}%" if pct >= 0 else "--"
+
+
 def _delta_str(seconds: float) -> str:
     if seconds <= 0:
         return "まもなく"
@@ -143,28 +147,32 @@ class App(rumps.App):
             self.title = f"⚠ エラー: {e}"
 
     def _apply(self, snap, lim_5h, lim_7d, warn, danger, now) -> None:
+        is_estimated = self.cfg.get("plan", "pro") != "custom"
+
         # 5時間ウィンドウ
         used_5h = snap.five_hour.total
         if lim_5h > 0:
             pct_5h = _pct(used_5h, lim_5h)
-            self._5h_used.title   = f"　 使用: {used_5h:>12,} / {lim_5h:,} tokens"
+            est = " (推定)" if is_estimated else ""
+            self._5h_used.title   = f"　 使用: {used_5h:>12,} / {lim_5h:,} tokens{est}"
             self._5h_remain.title = f"　 残量: {max(0, lim_5h - used_5h):>12,} tokens ({pct_5h:.0f}%)"
         else:
-            pct_5h = -1  # 上限未設定
+            pct_5h = -1
             self._5h_used.title   = f"　 使用: {used_5h:>12,} tokens"
-            self._5h_remain.title = f"　 残量: 上限未設定 (⚙ 設定から入力)"
+            self._5h_remain.title = "　 残量: 上限未設定 (⚙ 設定から入力)"
         self._5h_reset.title = f"　 リセット: 最大 {_delta_str(5 * 3600)}"
 
         # 7日間ウィンドウ
         used_7d = snap.seven_day.total
         if lim_7d > 0:
             pct_7d = _pct(used_7d, lim_7d)
-            self._7d_used.title   = f"　 使用: {used_7d:>12,} / {lim_7d:,} tokens"
+            est = " (推定)" if is_estimated else ""
+            self._7d_used.title   = f"　 使用: {used_7d:>12,} / {lim_7d:,} tokens{est}"
             self._7d_remain.title = f"　 残量: {max(0, lim_7d - used_7d):>12,} tokens ({pct_7d:.0f}%)"
         else:
-            pct_7d = -1  # 上限未設定
+            pct_7d = -1
             self._7d_used.title   = f"　 使用: {used_7d:>12,} tokens"
-            self._7d_remain.title = f"　 残量: 上限未設定 (⚙ 設定から入力)"
+            self._7d_remain.title = "　 残量: 上限未設定 (⚙ 設定から入力)"
         self._7d_reset.title = f"　 リセット: 最大 {_delta_str(7 * 86400)}"
 
         # セッション
@@ -180,9 +188,6 @@ class App(rumps.App):
         self._last_updated.title = f"　 最終更新: {jst.strftime('%H:%M:%S')}"
 
         # メニューバータイトル
-        def _fmt_pct(pct: float) -> str:
-            return f"{pct:.0f}%" if pct >= 0 else "--"
-
         if pct_5h >= 0 or pct_7d >= 0:
             known_pcts = [p for p in (pct_5h, pct_7d) if p >= 0]
             min_pct = min(known_pcts)

@@ -1,4 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
+import tomllib
+
+with open("pyproject.toml", "rb") as _f:
+    _version = tomllib.load(_f)["project"]["version"]
 
 a = Analysis(
     ["src/main.py"],
@@ -35,7 +39,7 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
-    argv_emulation=True,
+    argv_emulation=False,  # rumps との組み合わせでクラッシュするため無効化
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
@@ -60,8 +64,8 @@ app = BUNDLE(
     info_plist={
         "LSUIElement": True,
         "NSHighResolutionCapable": True,
-        "CFBundleShortVersionString": "1.0.0",
-        "CFBundleVersion": "1.0.0",
+        "CFBundleShortVersionString": _version,
+        "CFBundleVersion": _version,
         "NSHumanReadableCopyright": "© 2026",
         "NSAppleEventsUsageDescription": "Accessibility access is not required.",
     },
