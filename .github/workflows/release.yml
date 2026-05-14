@@ -1,0 +1,96 @@
+name: Build & Release DMG
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "claude-token-rest.spec"
+      - "scripts/**"
+      - "requirements*.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      # ── 1. チェックアウト ──────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Python セットアップ ─────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-build.txt
+
+      # ── 3. アイコン生成 ────────────────────────────────────────────────
+      - name: Generate icon
+        run: python scripts/create_icon.py
+
+      # ── 4. PyInstaller ビルド ──────────────────────────────────────────
+      - name: Build app with PyInstaller
+        run: pyinstaller --clean --noconfirm claude-token-rest.spec
+
+      # ── 5. .app の存在確認 ─────────────────────────────────────────────
+      - name: Verify app bundle
+        run: |
+          test -d "dist/ClaudeTokenRest.app" || (echo "❌ .app が見つかりません" && exit 1)
+          echo "✅ ClaudeTokenRest.app が存在します"
+
+      # ── 6. DMG 作成 ────────────────────────────────────────────────────
+      - name: Create DMG
+        run: |
+          hdiutil create \
+            -volname "Claude Token Rest" \
+            -srcfolder "dist/ClaudeTokenRest.app" \
+            -ov \
+            -format UDZO \
+            "dist/ClaudeTokenRest.dmg"
+
+      # ── 7. バージョンタグを生成 ────────────────────────────────────────
+      - name: Generate version tag
+        id: version
+        run: |
+          DATE=$(date -u +"%Y%m%d-%H%M%S")
+          SHA="${GITHUB_SHA::7}"
+          echo "tag=v${DATE}-${SHA}" >> "$GITHUB_OUTPUT"
+          echo "name=Release ${DATE} (${SHA})" >> "$GITHUB_OUTPUT"
+
+      # ── 8. GitHub Release を作成して DMG をアップロード ───────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.name }}
+          body: |
+            ## Claude Token Rest
+
+            macOS メニューバーで Claude のトークン残量を表示するアプリです。
+
+            ### インストール方法
+            1. `ClaudeTokenRest.dmg` をダウンロード
+            2. DMG を開いて `ClaudeTokenRest.app` をアプリケーションフォルダへドラッグ
+            3. 初回起動時は右クリック → 開く（Gatekeeper 回避）
+
+            ### 注意
+            このリリースはコード署名なしのビルドです。
+            セキュリティ設定でブロックされた場合は「システム設定 → プライバシーとセキュリティ」から許可してください。
+
+            ---
+            Commit: `${{ github.sha }}`
+          generate_release_notes: true
+          files: dist/ClaudeTokenRest.dmg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

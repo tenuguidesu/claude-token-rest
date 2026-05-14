@@ -4,18 +4,18 @@ from pathlib import Path
 CONFIG_FILE = Path.home() / ".claude-token-rest" / "config.json"
 
 PLANS = {
-    "pro":   {"label": "Pro (1x)",    "mul": 1},
-    "max5":  {"label": "Max (5x)",    "mul": 5},
-    "max20": {"label": "Max (20x)",   "mul": 20},
-    "custom":{"label": "カスタム",    "mul": None},
+    "pro":    {"label": "Pro (1x)",    "mul": 1},
+    "max5":   {"label": "Max (5x)",    "mul": 5},
+    "max20":  {"label": "Max (20x)",   "mul": 20},
+    "custom": {"label": "カスタム",    "mul": None},
 }
 
-# Pro プランの推定上限（非公開のため参考値）
-BASE_5H  = 50_000
-BASE_7D  = 500_000
+# Anthropic 非公開のため推定値。UI 上で「推定」と明示して使用する
+BASE_5H = 50_000
+BASE_7D = 500_000
 
 DEFAULTS = {
-    "plan": "pro",
+    "plan":       "pro",
     "custom_5h":  50_000,
     "custom_7d":  500_000,
     "warn_pct":   30,
